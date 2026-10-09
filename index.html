@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DataTrust — Dataset Reliability & Trust Scoring Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <main>
+
+    <!-- ═══════════════════════════ NAV ═══════════════════════════ -->
+    <nav>
+      <div class="nav-brand">
+        <div class="nav-logo">🔍</div>
+        DataTrust
+      </div>
+      <div class="nav-links">
+        <button class="nav-btn active" onclick="showTab('evaluate')">Evaluate</button>
+        <button class="nav-btn" onclick="showTab('compare')">Compare</button>
+        <button class="nav-btn" onclick="showTab('about')">About</button>
+      </div>
+    </nav>
+
+    <!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+    <div class="hero">
+      <h1>Dataset Reliability &amp;<br><span>Trust Scoring</span> Platform</h1>
+      <p>Upload any CSV and get a comprehensive trust score across 5 quality dimensions — with explainable insights and
+        actionable recommendations.</p>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="val">5</div>
+          <div class="lbl">Quality Metrics</div>
+        </div>
+        <div class="hero-stat">
+          <div class="val">0–100</div>
+          <div class="lbl">Trust Score</div>
+        </div>
+        <div class="hero-stat">
+          <div class="val">3</div>
+          <div class="lbl">Risk Levels</div>
+        </div>
+        <div class="hero-stat">
+          <div class="val">∞</div>
+          <div class="lbl">Dataset Size</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════ TABS ═══════════════════════════ -->
+    <div class="tabs-wrapper">
+      <button class="tab active" onclick="showTab('evaluate')">📊 Evaluate Dataset</button>
+      <button class="tab" onclick="showTab('compare')">⚖️ Compare Datasets</button>
+      <button class="tab" onclick="showTab('about')">ℹ️ About</button>
+    </div>
+
+    <!-- ═══════════════════════════ EVALUATE PANEL ═══════════════════════════ -->
+    <div id="panel-evaluate" class="panel active">
+
+      <div class="upload-section" id="upload-section">
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="csv-file" accept=".csv" onchange="handleFileSelect(this)" />
+          <div class="drop-icon">📂</div>
+          <div class="drop-title">Drop your CSV file here</div>
+          <div class="drop-sub">or click to browse · max 50 MB</div>
+        </div>
+
+        <div class="or-divider">— or try a sample dataset —</div>
+
+        <div class="sample-btns">
+          <button class="sample-btn" onclick="loadSample('clean')">
+            <span class="dot" style="background:var(--safe)"></span>
+            ✅ Clean Dataset
+          </button>
+          <button class="sample-btn" onclick="loadSample('messy')">
+            <span class="dot" style="background:var(--risk)"></span>
+            ❌ Messy Dataset
+          </button>
+          <button class="sample-btn" onclick="loadSample('mixed')">
+            <span class="dot" style="background:var(--moderate)"></span>
+            ⚠️ Mixed Dataset
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Analysing dataset quality…</div>
+      </div>
+
+      <!-- Results -->
+      <div id="results">
+        <div class="results-wrap">
+
+          <!-- Score Header -->
+          <div class="score-header" id="score-header">
+            <div class="gauge-wrap">
+              <svg class="gauge-svg" viewBox="0 0 130 130">
+                <circle class="gauge-bg" cx="65" cy="65" r="52" />
+                <circle class="gauge-fill" id="gauge-circle" cx="65" cy="65" r="52" stroke-dasharray="326.7"
+                  stroke-dashoffset="326.7" />
+              </svg>
+              <div class="gauge-text">
+                <div class="gauge-score" id="gauge-score">—</div>
+                <div class="gauge-label">/ 100</div>
+              </div>
+            </div>
+
+            <div class="score-info">
+              <h2 id="ds-name">Dataset</h2>
+              <div class="meta" id="ds-meta"></div>
+              <div id="risk-badge"></div>
+            </div>
+
+            <div class="score-actions">
+              <button class="btn primary" onclick="exportReport('json')">⬇ Export JSON</button>
+              <button class="btn" onclick="exportReport('csv')">⬇ Export CSV</button>
+              <button class="btn" onclick="resetEvaluate()">↩ New Dataset</button>
+            </div>
+          </div>
+
+          <!-- Metric Cards -->
+          <div class="section-title">Quality Metrics</div>
+          <div class="metrics-grid" id="metrics-grid"></div>
+
+          <!-- Charts Row -->
+          <div class="section-title">Visual Analysis</div>
+          <div class="charts-row">
+            <div class="chart-card">
+              <div class="chart-card-title">Quality Radar</div>
+              <img id="chart-radar" src="" alt="Radar chart" />
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Metric Scores</div>
+              <img id="chart-bars" src="" alt="Bar chart" />
+            </div>
+            <div class="chart-card">
+              <div class="chart-card-title">Missing Values</div>
+              <img id="chart-missing" src="" alt="Missing chart" />
+            </div>
+          </div>
+
+          <!-- Issues -->
+          <div class="section-title">Detected Issues</div>
+          <div class="issues-grid" id="issues-grid"></div>
+
+          <!-- Recommendations -->
+          <div class="section-title">Recommendations</div>
+          <div class="recs-list" id="recs-list"></div>
+
+          <!-- Column Profiles -->
+          <div class="section-title">Column Profiles</div>
+          <div class="profiles-table-wrap">
+            <table class="profiles-table" id="profiles-table">
+              <thead>
+                <tr>
+                  <th>Column</th>
+                  <th>Type</th>
+                  <th>Null Count</th>
+                  <th>Null %</th>
+                  <th>Unique</th>
+                  <th>Stats / Top Values</th>
+                </tr>
+              </thead>
+              <tbody id="profiles-tbody"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- end panel-evaluate -->
+
+    <!-- ═══════════════════════════ COMPARE PANEL ═══════════════════════════ -->
+    <div id="panel-compare" class="panel">
+      <div class="compare-section">
+        <div class="section-title" style="margin-bottom:1.5rem">Compare Multiple Datasets</div>
+
+        <div class="compare-drop" id="compare-drop">
+          <input type="file" id="compare-files" accept=".csv" multiple onchange="handleCompareFiles(this)" />
+          <div class="drop-icon" style="margin:0 auto .8rem">📂</div>
+          <div class="drop-title">Select 2 or more CSV files</div>
+          <div class="drop-sub">Hold Ctrl/Cmd to select multiple files</div>
+        </div>
+
+        <div class="file-chips" id="file-chips"></div>
+
+        <button class="run-compare-btn" id="run-compare-btn" disabled onclick="runComparison()">
+          ⚖️ Run Comparison
+        </button>
+
+        <div class="loading" id="compare-loading" style="padding:3rem 0">
+          <div class="spinner"></div>
+          <div class="loading-text">Comparing datasets…</div>
+        </div>
+
+        <div class="compare-results" id="compare-results">
+          <div class="section-title" style="margin:1.5rem 0 1rem">Comparison Chart</div>
+          <div class="compare-chart-card">
+            <img id="comp-chart" src="" alt="Comparison chart" />
+          </div>
+
+          <div class="section-title" style="margin-bottom:1rem">Rankings</div>
+          <div class="compare-table-wrap">
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Dataset</th>
+                  <th>Trust Score</th>
+                  <th>Risk</th>
+                  <th>Rows</th>
+                  <th>Cols</th>
+                  <th>Recs</th>
+                </tr>
+              </thead>
+              <tbody id="compare-tbody"></tbody>
+            </table>
+          </div>
+
+          <div id="compare-detail-cards"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════ ABOUT PANEL ═══════════════════════════ -->
+    <div id="panel-about" class="panel">
+      <div class="about-section">
+
+        <div class="about-card">
+          <h3>⚙️ Core Algorithms & Code</h3>
+          <p style="color:var(--text2);font-size:.85rem;line-height:1.8;margin-bottom:1rem">
+            The Data Trust Engine leverages statistical and heuristic methodologies to evaluate dataset health. Below
+            are the primary algorithms implemented in the backend:
+          </p>
+
+          <div style="margin-bottom: 1.5rem">
+            <h4 style="color:var(--text);font-size:0.9rem;margin-bottom:0.5rem">1. Interquartile Range (IQR) Outlier
+              Detection</h4>
+            <p style="color:var(--text3);font-size:0.75rem;margin-bottom:0.5rem;line-height:1.6">Used in the Accuracy
+              metric to statistically identify values falling outside the expected data distribution.</p>
+            <pre
+              style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:1rem;font-size:.75rem;overflow-x:auto;color:var(--accent);line-height:1.6">Q1, Q3 = series.quantile(0.25), series.quantile(0.75)
+IQR = Q3 - Q1
+outliers = series[(series &lt; Q1 - 1.5 * IQR) | (series &gt; Q3 + 1.5 * IQR)]</pre>
+          </div>
+
+          <div style="margin-bottom: 1.5rem">
+            <h4 style="color:var(--text);font-size:0.9rem;margin-bottom:0.5rem">2. Shannon Entropy & Imbalance Ratio
+            </h4>
+            <p style="color:var(--text3);font-size:0.75rem;margin-bottom:0.5rem;line-height:1.6">Used in the Bias metric
+              to calculate representation evenness and dominance of categorical classes.</p>
+            <pre
+              style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:1rem;font-size:.75rem;overflow-x:auto;color:var(--accent);line-height:1.6">vc = df[col].value_counts(normalize=True)
+imbalance_ratio = vc.iloc[0] / vc.iloc[-1]
+entropy = -np.sum(vc * np.log2(vc + 1e-9))
+max_entropy = np.log2(len(vc))
+evenness = entropy / max_entropy</pre>
+          </div>
+
+          <div style="margin-bottom: 0.5rem">
+            <h4 style="color:var(--text);font-size:0.9rem;margin-bottom:0.5rem">3. Statistical Skewness</h4>
+            <p style="color:var(--text3);font-size:0.75rem;margin-bottom:0.5rem;line-height:1.6">Used in the Bias metric
+              to detect heavily skewed numerical distributions (threshold &gt; 2.0).</p>
+            <pre
+              style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:1rem;font-size:.75rem;overflow-x:auto;color:var(--accent);line-height:1.6">skewness = abs(series.skew())
+if skewness &gt; 2.0:
+    penalties += min(skewness * 2, 10)</pre>
+          </div>
+
+          <div style="margin-bottom: 0.5rem">
+            <h4 style="color:var(--text);font-size:0.9rem;margin-bottom:0.5rem">4. NLP & Lexical Heuristics</h4>
+            <p style="color:var(--text3);font-size:0.75rem;margin-bottom:0.5rem;line-height:1.6">Used in the Consistency
+              metric to parse text data and detect formatting/whitespace discrepancies alongside mixed alphanumeric
+              characters using baseline String/NLP functions.</p>
+            <pre
+              style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:1rem;font-size:.75rem;overflow-x:auto;color:var(--accent);line-height:1.6">has_num = sample.apply(lambda x: str(x).replace(".", "").isdigit()).any()
+if (sample != sample.str.strip()).any():
+    ws_cols.append(col)</pre>
+          </div>
+        </div>
+
+        <div class="about-card">
+          <h3>📊 Scoring Dimensions</h3>
+          <table class="dim-table">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Weight</th>
+                <th>What It Checks</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Completeness</td>
+                <td>25%</td>
+                <td>Missing values per column</td>
+              </tr>
+              <tr>
+                <td>Consistency</td>
+                <td>20%</td>
+                <td>Duplicates, mixed types, whitespace</td>
+              </tr>
+              <tr>
+                <td>Accuracy</td>
+                <td>20%</td>
+                <td>IQR outlier detection, infinite values</td>
+              </tr>
+              <tr>
+                <td>Bias</td>
+                <td>20%</td>
+                <td>Class imbalance, skewness, representation</td>
+              </tr>
+              <tr>
+                <td>Reliability</td>
+                <td>15%</td>
+                <td>Dataset size, constant columns, ID leakage</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="about-card">
+          <h3>🏷️ Trust Labels</h3>
+          <table class="dim-table">
+            <thead>
+              <tr>
+                <th>Score Range</th>
+                <th>Label</th>
+                <th>Meaning</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>75 – 100</td>
+                <td><span class="risk-badge safe">✅ Safe</span></td>
+                <td>Ready for ML / analytics</td>
+              </tr>
+              <tr>
+                <td>50 – 74</td>
+                <td><span class="risk-badge moderate">⚠️ Moderate Risk</span></td>
+                <td>Needs attention before use</td>
+              </tr>
+              <tr>
+                <td>0 – 49</td>
+                <td><span class="risk-badge high">🔴 High Risk</span></td>
+                <td>Significant issues — do not use as-is</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="about-card">
+          <h3>🌐 Platform APIs</h3>
+          <table class="dim-table">
+            <thead>
+              <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>/api/evaluate</code></td>
+                <td>POST</td>
+                <td>Primary trust score engine. Accepts any CSV file or sample dataset name and returns unified JSON
+                  health matrices.</td>
+              </tr>
+              <tr>
+                <td><code>/api/compare</code></td>
+                <td>POST</td>
+                <td>Multi-dataset processor used to rank multiple uploaded CSV files simultaneously.</td>
+              </tr>
+              <tr>
+                <td><code>/api/sample/&lt;type&gt;</code></td>
+                <td>GET</td>
+                <td>Dynamic endpoint to fetch synthetic "clean", "messy", or "mixed" mock data.</td>
+              </tr>
+              <tr>
+                <td><code>/api/export/&lt;fmt&gt;</code></td>
+                <td>POST</td>
+                <td>Downloads the current analysis state as either a JSON tree or flattened CSV report.</td>
+              </tr>
+              <tr>
+                <td><code>/api/health</code></td>
+                <td>GET</td>
+                <td>Live readiness probe.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="about-card">
+          <h3>🛠️ App Stack & Dependencies</h3>
+          <p style="color:var(--text2);font-size:.85rem;line-height:1.8;margin-bottom:1rem">
+            This platform was built from scratch without massive heavy web frameworks — ensuring a lightweight,
+            extremely responsive application architecture.
+          </p>
+          <div class="team-grid">
+            <div class="team-member" style="padding:1rem">
+              <div class="member-name" style="font-size:.9rem;color:var(--accent)">1. Web Backend (Flask App)</div>
+              <div class="member-roll" style="margin-top:4px;color:var(--text2)">Python Flask application routing
+                parallel evaluations globally.</div>
+            </div>
+            <div class="team-member" style="padding:1rem">
+              <div class="member-name" style="font-size:.9rem;color:var(--accent)">2. Engine App (Pandas & Numpy)</div>
+              <div class="member-roll" style="margin-top:4px;color:var(--text2)">Numpy and Pandas power the heavy
+                lifting of statistical aggregation arrays.</div>
+            </div>
+            <div class="team-member" style="padding:1rem">
+              <div class="member-name" style="font-size:.9rem;color:var(--accent)">3. Analytics (Matplotlib)</div>
+              <div class="member-roll" style="margin-top:4px;color:var(--text2)">Headless Matplotlib directly streaming
+                Base64 generated visualization frames.</div>
+            </div>
+            <div class="team-member" style="padding:1rem">
+              <div class="member-name" style="font-size:.9rem;color:var(--accent)">4. User Interface (Vanilla JS App)
+              </div>
+              <div class="member-roll" style="margin-top:4px;color:var(--text2)">Hand-written CSS UI grids and pure
+                Javascript ES6 dynamically rendering async queries.</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Back / Toast -->
+    <button id="back-btn" onclick="resetEvaluate()">↩ New Dataset</button>
+    <div class="toast" id="toast"></div>
+
+  </main>
+
+  <script>
+    const API_BASE = 'http://127.0.0.1:5001';
+
+    /* ════════════════════════════════════════════════════
+       STATE
+    ════════════════════════════════════════════════════ */
+    let currentReport = null;
+    let compareFiles = [];
+
+    /* ════════════════════════════════════════════════════
+       TABS
+    ════════════════════════════════════════════════════ */
+    function showTab(tab) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab, .nav-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('panel-' + tab).classList.add('active');
+      document.querySelectorAll('.tab').forEach(b => {
+        if (b.textContent.toLowerCase().includes(tab.split('-')[0])) b.classList.add('active');
+      });
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        if (b.textContent.toLowerCase().includes(tab)) b.classList.add('active');
+      });
+    }
+
+    /* ════════════════════════════════════════════════════
+       DROP ZONE
+    ════════════════════════════════════════════════════ */
+    const dropZone = document.getElementById('drop-zone');
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.csv')) submitFile(file);
+      else showToast('⚠️ Please drop a CSV file');
+    });
+
+    function handleFileSelect(input) {
+      if (input.files[0]) submitFile(input.files[0]);
+    }
+
+    /* ════════════════════════════════════════════════════
+       API CALLS
+    ════════════════════════════════════════════════════ */
+    async function submitFile(file) {
+      showLoading();
+      const fd = new FormData();
+      fd.append('file', file);
+      try {
+        const res = await fetch(`${API_BASE}/api/evaluate`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) renderReport(data.report);
+        else showError(data.error);
+      } catch (e) {
+        showError('Could not connect to server. Make sure flask_app.py is running on port 5001.');
+      }
+    }
+
+    async function loadSample(type) {
+      showLoading();
+      try {
+        const res = await fetch(`${API_BASE}/api/evaluate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sample: type })
+        });
+        const data = await res.json();
+        if (data.success) renderReport(data.report);
+        else showError(data.error);
+      } catch (e) {
+        showError('Could not connect to server. Make sure flask_app.py is running on port 5001.');
+      }
+    }
+
+    /* ════════════════════════════════════════════════════
+       RENDER REPORT
+    ════════════════════════════════════════════════════ */
+    function renderReport(report) {
+      currentReport = report;
+      hideLoading();
+
+      document.getElementById('upload-section').style.display = 'none';
+      document.getElementById('results').classList.add('active');
+      document.getElementById('back-btn').classList.add('visible');
+
+      // Gauge
+      const score = report.trust_score;
+      const circumference = 2 * Math.PI * 52;
+      const offset = circumference - (score / 100) * circumference;
+      const color = score >= 75 ? '#00e676' : score >= 50 ? '#ffeb3b' : '#ff4757';
+
+      const gaugeCircle = document.getElementById('gauge-circle');
+      gaugeCircle.style.stroke = color;
+      setTimeout(() => gaugeCircle.style.strokeDashoffset = offset, 100);
+
+      document.getElementById('gauge-score').textContent = score.toFixed(1);
+      document.getElementById('gauge-score').style.color = color;
+
+      // Header info
+      document.getElementById('ds-name').textContent = report.dataset_name;
+      document.getElementById('ds-meta').textContent =
+        `${report.shape.rows.toLocaleString()} rows × ${report.shape.columns} columns  ·  Evaluated ${report.evaluated_at}`;
+
+      const riskClass = score >= 75 ? 'safe' : score >= 50 ? 'moderate' : 'high';
+      const riskIcons = { safe: '✅', moderate: '⚠️', high: '🔴' };
+      document.getElementById('risk-badge').innerHTML =
+        `<span class="risk-badge ${riskClass}">${riskIcons[riskClass]} ${report.risk_label}</span>`;
+
+      // Metric cards
+      const mg = document.getElementById('metrics-grid');
+      mg.innerHTML = '';
+      for (const [name, m] of Object.entries(report.metrics)) {
+        const c = m.score >= 75 ? '#00e676' : m.score >= 50 ? '#ffeb3b' : '#ff4757';
+        const icon = m.score >= 75 ? '✅' : m.score >= 50 ? '⚠️' : '❌';
+        mg.innerHTML += `
+      <div class="metric-card">
+        <div class="metric-name">${icon} ${name}</div>
+        <div class="metric-score" style="color:${c}">${m.score.toFixed(1)}</div>
+        <div class="metric-bar-bg">
+          <div class="metric-bar-fill" style="width:${m.score}%;background:${c}"></div>
+        </div>
+        <div class="metric-issues">${m.issues.length} issue${m.issues.length !== 1 ? 's' : ''} · wt ${(m.weight * 100).toFixed(0)}%</div>
+      </div>`;
+      }
+
+      // Charts
+      document.getElementById('chart-radar').src = 'data:image/png;base64,' + report.charts.radar;
+      document.getElementById('chart-bars').src = 'data:image/png;base64,' + report.charts.bars;
+      document.getElementById('chart-missing').src = 'data:image/png;base64,' + report.charts.missing;
+
+      // Issues
+      const ig = document.getElementById('issues-grid');
+      ig.innerHTML = '';
+      for (const [name, m] of Object.entries(report.metrics)) {
+        if (!m.issues.length) continue;
+        ig.innerHTML += `
+      <div class="issues-card">
+        <div class="issues-card-header">
+          <div class="issues-card-title">${name}</div>
+          <div class="issues-count">${m.issues.length}</div>
+        </div>
+        ${m.issues.map(i => `
+          <div class="issue-item">
+            <div class="issue-dot"></div>
+            <span>${i}</span>
+          </div>`).join('')}
+      </div>`;
+      }
+      if (!ig.innerHTML) ig.innerHTML = '<p style="color:var(--safe);font-size:.85rem;padding:.5rem 0">🎉 No issues detected!</p>';
+
+      // Recommendations
+      const rl = document.getElementById('recs-list');
+      rl.innerHTML = '';
+      if (!report.recommendations.length) {
+        rl.innerHTML = '<div class="metric-card" style="text-align:center;color:var(--safe)">🎉 No recommendations — dataset looks clean!</div>';
+      } else {
+        for (const r of report.recommendations) {
+          const sc = r.severity.toLowerCase();
+          rl.innerHTML += `
+        <div class="rec-item ${sc}">
+          <span class="rec-sev ${sc}">${r.severity}</span>
+          <div class="rec-body">
+            <div class="rec-metric">↗ ${r.metric}</div>
+            <div class="rec-issue">${r.issue}</div>
+            <div class="rec-fix">${r.suggestion}</div>
+          </div>
+          <div class="rec-gain">
+            <div class="val">+${r.expected_gain.toFixed(1)}</div>
+            <span class="lbl">pts gain</span>
+          </div>
+        </div>`;
+        }
+      }
+
+      // Column profiles table
+      const tbody = document.getElementById('profiles-tbody');
+      tbody.innerHTML = '';
+      for (const [col, p] of Object.entries(report.column_profiles)) {
+        const nullClass = p.null_pct > 20 ? 'null-bad' : p.null_pct > 5 ? 'null-warn' : 'null-ok';
+        let stats = '';
+        if ('mean' in p) {
+          stats = `μ=${p.mean?.toFixed(2) ?? '—'}  σ=${p.std?.toFixed(2) ?? '—'}  skew=${p.skewness?.toFixed(2) ?? '—'}`;
+        } else {
+          const tops = Object.keys(p.top_values || {}).slice(0, 3).join(', ');
+          stats = tops ? `Top: ${tops}` : '—';
+        }
+        tbody.innerHTML += `
+      <tr>
+        <td style="font-weight:600;color:var(--text)">${col}</td>
+        <td>${p.dtype}</td>
+        <td>${p.null_count}</td>
+        <td class="${nullClass}">${p.null_pct.toFixed(1)}%</td>
+        <td>${p.unique_count}</td>
+        <td style="color:var(--text3)">${stats}</td>
+      </tr>`;
+      }
+
+      // Scroll to results
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ════════════════════════════════════════════════════
+       COMPARE
+    ════════════════════════════════════════════════════ */
+    function handleCompareFiles(input) {
+      compareFiles = Array.from(input.files);
+      renderChips();
+    }
+
+    function renderChips() {
+      const chips = document.getElementById('file-chips');
+      chips.innerHTML = compareFiles.map((f, i) =>
+        `<div class="file-chip">📄 ${f.name}
+     <button onclick="removeFile(${i})">✕</button>
+     </div>`
+      ).join('');
+      document.getElementById('run-compare-btn').disabled = compareFiles.length < 2;
+    }
+
+    function removeFile(i) {
+      compareFiles.splice(i, 1);
+      renderChips();
+    }
+
+    async function runComparison() {
+      if (compareFiles.length < 2) { showToast('⚠️ Upload at least 2 CSV files'); return; }
+
+      document.getElementById('compare-loading').classList.add('active');
+      document.getElementById('compare-results').classList.remove('active');
+
+      const fd = new FormData();
+      compareFiles.forEach(f => fd.append('files', f));
+
+      try {
+        const res = await fetch(`${API_BASE}/api/compare`, { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.success) renderComparison(data);
+        else showError(data.error);
+      } catch (e) {
+        showError('Server connection failed.');
+      } finally {
+        document.getElementById('compare-loading').classList.remove('active');
+      }
+    }
+
+    function renderComparison(data) {
+      document.getElementById('comp-chart').src = 'data:image/png;base64,' + data.comparison_chart;
+
+      const tbody = document.getElementById('compare-tbody');
+      const sorted = [...data.reports].sort((a, b) => b.trust_score - a.trust_score);
+      tbody.innerHTML = sorted.map((r, i) => {
+        const riskClass = r.trust_score >= 75 ? 'safe' : r.trust_score >= 50 ? 'moderate' : 'high';
+        const score = r.trust_score;
+        const color = score >= 75 ? '#00e676' : score >= 50 ? '#ffeb3b' : '#ff4757';
+        return `<tr>
+      <td><span class="rank-badge rank-${i + 1}">${i + 1}</span></td>
+      <td style="font-weight:600;color:var(--text)">${r.dataset_name}</td>
+      <td><strong style="color:${color}">${score.toFixed(1)}</strong></td>
+      <td><span class="risk-badge ${riskClass}" style="font-size:.7rem">${r.risk_label}</span></td>
+      <td>${r.shape.rows.toLocaleString()}</td>
+      <td>${r.shape.columns}</td>
+      <td>${r.recommendations.length}</td>
+    </tr>`;
+      }).join('');
+
+      document.getElementById('compare-results').classList.add('active');
+      document.getElementById('compare-results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    /* ════════════════════════════════════════════════════
+       EXPORT
+    ════════════════════════════════════════════════════ */
+    async function exportReport(fmt) {
+      if (!currentReport) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/export/${fmt}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(currentReport)
+        });
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `trust_report.${fmt}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`✅ ${fmt.toUpperCase()} report downloaded`);
+      } catch (e) {
+        showToast('❌ Export failed');
+      }
+    }
+
+    /* ════════════════════════════════════════════════════
+       UI HELPERS
+    ════════════════════════════════════════════════════ */
+    function showLoading() {
+      document.getElementById('upload-section').style.display = 'none';
+      document.getElementById('loading').classList.add('active');
+      document.getElementById('results').classList.remove('active');
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').classList.remove('active');
+    }
+
+    function resetEvaluate() {
+      document.getElementById('upload-section').style.display = 'block';
+      document.getElementById('results').classList.remove('active');
+      document.getElementById('loading').classList.remove('active');
+      document.getElementById('back-btn').classList.remove('visible');
+      document.getElementById('csv-file').value = '';
+      currentReport = null;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showError(msg) {
+      hideLoading();
+      document.getElementById('upload-section').style.display = 'block';
+      showToast('❌ ' + (msg || 'Something went wrong'));
+    }
+
+    let toastTimer;
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    /* animate metric bars on load */
+    document.addEventListener('DOMContentLoaded', () => {
+      // Trigger bar animations after a short delay
+      setTimeout(() => {
+        document.querySelectorAll('.metric-bar-fill').forEach(bar => {
+          bar.style.width = bar.style.width; // force reflow
+        });
+      }, 200);
+    });
+  </script>
+
+</body>
+
+</html>
